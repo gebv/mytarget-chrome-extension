@@ -324,7 +324,7 @@ DailyStat = {
                 m("th", "Показы"),
                 m("th", "CTR"),
                 m("th", m("ul.uk-form uk-list", colRates)),
-                m("th", "Result"),
+                m("th", ""),
             ])
         ]);
         var tfooter = m("tfoot", [
@@ -335,7 +335,7 @@ DailyStat = {
                 m("th", "Показы"),
                 m("th", "CTR"),
                 m("th", m("ul.uk-form uk-list", colRates)),
-                m("th", "Result"),
+                m("th", ""),
             ])
         ]);
 
