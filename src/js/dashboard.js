@@ -168,7 +168,7 @@ HourlyStat = {
                 m("th", "Показы"),
                 m("th", "CTR"),
                 m("th", m("ul.uk-form uk-list", colRates)),
-                m("th", "Result"),
+                m("th", ""),
             ])
         ]);
         var tfooter = m("tfoot", [
@@ -179,7 +179,7 @@ HourlyStat = {
                 m("th", "Показы"),
                 m("th", "CTR"),
                 m("th", m("ul.uk-form uk-list", colRates)),
-                m("th", "Result"),
+                m("th", ""),
             ])
         ]);
 
