@@ -1,0 +1,60 @@
+<html>
+    <head>
+        
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta charset=utf-8>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+        <script 
+            type="text/javascript" 
+            src="js/mithril.min.js"></script>
+        <script 
+            type="text/javascript" 
+            src="js/lodash.min.js"></script>
+        <link 
+            rel="stylesheet"
+            href="css/uikit.almost-flat.min.css"/>
+    </head>
+    <body>
+		<div class="uk-container uk-container-center uk-margin-top uk-margin-bottom">
+
+			<nav class="uk-navbar uk-margin-bottom">
+				<a class="uk-navbar-brand uk-hidden-small" href="#!/campaigns">Название компании</a>
+				<ul class="uk-navbar-nav uk-hidden-small">
+                    <!--<li><a href="#!/campaigns">List of campaigns</a></li>-->
+                    <li><a href="#!/settings">Настройки</a></li>
+                    <li><a href="#!/statistics/hourly">Почасовая</a></li>
+                    <li><a href="#!/statistics/daily">Посуточная</a></li>
+				</ul>
+			</nav>
+		</div>
+		<div 
+            id="content" 
+            class="uk-container uk-container-center">    
+		</div>
+        <script src="js/dashboard.js"></script>
+    </body>
+
+</html>
+
+<!--
+
+{
+    "manifest_version": 2,
+    "name": "MyTarget statistics",
+    "version": "0.0.1",
+    "permissions": [
+        "background",
+        "https://target.my.com/api/v1/*"
+    ],
+    "browser_action": {
+        "default_title": "MyTarget statistics",
+        "default_popup": "popup.html"
+    },
+    "background": {
+        "scripts": ["js/background.js"],
+        "page": "background.html"
+    }
+}
+    
+-->
