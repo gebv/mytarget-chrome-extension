@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Быстрая статистика myTarget",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "Быстрая статистика myTarget от Академии Лидогенерации",
     "homepage_url": "http://lead-academy.ru",
     "icons": {
