@@ -139,9 +139,9 @@ var TableSettings = {
 var RateChanger = {
     view: function(v) {
         return m("div", [
-            m("div.uk-form-controls", [
+            m("div.uk-form-row", [
                 m(
-                    "label", 
+                    "label.uk-form-label uk-margin-right", 
                     {
                         for: v.attrs._id+"-rate",
                     },
@@ -156,9 +156,9 @@ var RateChanger = {
                     }
                 )
             ]),
-            m("div.uk-form-controls", [
+            m("div.uk-form-row", [
                 m(
-                    "label", 
+                    "label.uk-form-label uk-margin-right", 
                     {
                         for: v.attrs._id+"-clicks-radiobutton",
                     },
@@ -175,9 +175,9 @@ var RateChanger = {
                     }
                 )
             ]),
-            m("div.uk-form-controls", [
+            m("div.uk-form-row", [
                 m(
-                    "label", 
+                    "label.uk-form-label uk-margin-right", 
                     {
                         for: v.attrs._id+"-shows-radiobutton",
                     },
@@ -236,7 +236,7 @@ var SelectCampaing = {
                 }},
                 opts
             ),
-            m("div", [
+            m("div.uk-margin-top", [
                 m(
                     "button.uk-button", 
                     {
@@ -249,7 +249,7 @@ var SelectCampaing = {
                     "Выбрать все"
                 ),
                 m(
-                    "button.uk-button", 
+                    "button.uk-button uk-margin-left", 
                     {
                         onclick: function(e) {
                             e.preventDefault();
@@ -261,7 +261,7 @@ var SelectCampaing = {
                 )
             ]),
             m(
-                "a.uk-button uk-button-large uk-width-1-1", 
+                "a.uk-button uk-button-large uk-width-1-1 uk-margin-top", 
                 {
                     href: "#!/statistics/campaings/"+Api.selectedCampaingIDs.join(",")+"/minutely"
                 },
@@ -269,7 +269,7 @@ var SelectCampaing = {
             ),
 
             m(
-                "a.uk-button uk-button-large uk-width-1-1", 
+                "a.uk-button uk-button-large uk-width-1-1 uk-margin-top", 
                 {
                     href: "#!/statistics/campaings/"+Api.selectedCampaingIDs.join(",")+"/hourly"
                 },
@@ -514,7 +514,14 @@ var StatByMode = {
                 var item = v.state.getItemByID(id);
 
                 if (!item || !item.stat) {
-                    rowCols.push(m("td", ""));
+                    rowCols.push(m(
+                        "td", 
+                        {
+                            style: {
+                                "border-right": "1px solid #E5E5E5"
+                            }
+                        },
+                        ""));
                     return;
                 }
 
@@ -570,13 +577,19 @@ var StatByMode = {
                 if (v.state.isShowTableCol("total")) {
                     rowCols.push(m(
                          "td", 
-                         {
-                            style: {
-                                // "border-right": "1px solid #ddd"
-                            }
-                        },
                         mutedZeroFilter(sum)));
                 }
+
+                rowCols.push(
+                    m(
+                         "td", 
+                         {
+                            style: {
+                                "border-right": "1px solid #ddd"
+                            }
+                        },
+                        "")
+                )
             });
 
             // TODO: итоговая сумма
@@ -650,10 +663,18 @@ var StatByMode = {
                             ""
                     ]: [
                         m("li.uk-text-small", id),
-                        m("li", "loading...")
+                        m("li.uk-text-small", [
+                            m("span", "Кампания"),
+                            m("br"),
+                            m("span", "остановлена"),
+                            m("br"),
+                            m("span", "или нет"),
+                            m("br"),
+                            m("span", "данных")
+                        ])
                     ];
 
-                var controls = m("ul.uk-list uk-form", subcontrols)
+                var controls = m("ul.uk-list", subcontrols)
 
                 var firstItem = v.state.getItemByID(_.head(v.state.getListItemIDs()));
 
@@ -679,7 +700,10 @@ var StatByMode = {
                         m(
                             "th", 
                             {
-                                colspan: v.state.numTableCols()
+                                colspan: isLoaded? v.state.numTableCols()+1: 1,
+                                style: {
+                                    "border-right": "1px solid #E5E5E5"
+                                }
                             },
                             controls
                         )
@@ -690,7 +714,10 @@ var StatByMode = {
                     m(
                         "th", 
                         {
-                            colspan: v.state.numTableCols()
+                            colspan: isLoaded? v.state.numTableCols()+1: 1,
+                            style: {
+                                    "border-right": "1px solid #E5E5E5"
+                                }
                         },
                         controls
                     )
@@ -702,7 +729,14 @@ var StatByMode = {
 
                 if (!isLoaded) {
                     return [
-                        m("th", "..."),
+                        m(
+                            "th",
+                            {
+                                style: {
+                                    "border-right": "1px solid #ddd"
+                                }
+                            }, 
+                            "..."),
                     ]
                 }
 
@@ -720,7 +754,12 @@ var StatByMode = {
                             "",
                         v.state.isShowTableCol("total")?
                             m("th", "Сумма"):
-                            ""
+                            "",
+                        m("th", {
+                            style: {
+                                "border-right": "1px solid #E5E5E5"
+                            }
+                        }, "")
                     ]    
                 }
                 
@@ -736,7 +775,12 @@ var StatByMode = {
                         "",
                     v.state.isShowTableCol("total")?
                         m("th", "Сумма"):
-                        ""
+                        "",
+                    m("th", {
+                        style: {
+                            "border-right": "1px solid #E5E5E5"
+                        }
+                    }, "")
                 ]
             })),
             m("tr", _.map(v.state.getListItemIDs(), function(id, index){
@@ -745,7 +789,14 @@ var StatByMode = {
 
                 if (!isLoaded) {
                     return [
-                        m("th", "..."),
+                        m(
+                            "th", 
+                            {
+                                style: {
+                                    "border-right": "1px solid #ddd"
+                                }
+                            },
+                            "..."),
                     ]
                 }
 
@@ -773,7 +824,12 @@ var StatByMode = {
                             "",
                         v.state.isShowTableCol("total")?
                             m("th", sum):
-                            ""
+                            "",
+                        m("th", {
+                            style: {
+                                "border-right": "1px solid #E5E5E5"
+                            }
+                        }, "")
                     ]    
                 }
                 
@@ -789,7 +845,12 @@ var StatByMode = {
                         "",
                     v.state.isShowTableCol("total")?
                         m("th", sum):
-                        ""
+                        "",
+                    m("th", {
+                        style: {
+                            "border-right": "1px solid #E5E5E5"
+                        }
+                    }, "")
                 ]
             }))
         )
