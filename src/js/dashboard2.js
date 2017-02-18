@@ -1,15 +1,6 @@
 var Api = {
     listCampaings: [], // Список кампаний
     banners: {},
-    tableSettings: {
-        cols: ["clicks", "shows", "CTR", "total"]
-    },
-    isShowColTable: function(name) {
-        return _.indexOf(this.tableSettings.cols, name) != -1;
-    },
-    numColsTable: function() {
-        return this.tableSettings.cols.length;
-    },
     faststatBanners: {},
     faststatCampaings: {}, // Суммарная статистика по компаниям
     selectedBannerIDs: [], // устаревшее, удалить после реализации нового механизма выбора компании
@@ -90,6 +81,19 @@ var Api = {
     }
 };
 
+var Storage = {
+    save: function(kvs)  {
+        return chrome.storage.sync.set(kvs, function() {
+            console.log('saved', kvs);
+        });
+    },
+    load: function(keys, cb) {
+        return chrome.storage.sync.get(keys, function(values) {
+            cb(values);
+        });
+    }
+}
+
 var TableSettings = {
     view: function(v) {
         return m(
@@ -127,7 +131,7 @@ var TableSettings = {
                     {
                     selected: _.indexOf(v.attrs.values, 'total') != -1,
                     },
-                    'total')
+                    'Сумма')
             ])
     }
 }
@@ -288,92 +292,22 @@ var StatByMode = {
     conf: {},
     isReady: false,
     isWaitingMsg: "",
-    setCalcModeByID: function(id, v) {
-        if (this.conf['for_all'] == undefined) {
-            this.conf['for_all'] = {
-                calcmode: "clicks",
-                rate: 0
-            }
-        }
-
-        if (this.conf[id] == undefined) {
-            this.conf[id] = {
-                calcmode: "clicks",
-                rate: 0
-            }
-        }
-
-        if (this.isSingle()) {
-            return this.conf['for_all'].calcmode = v;
-        }
-
-        return this.conf[id].calcmode = v;
+    defaultCols: ["clicks", "shows", "CTR", "total"],
+    tableCols: function() {
+        return this.conf["tablecols"] || this.defaultCols;
     },
-    setRateByID: function(id, v) {
-        if (this.conf['for_all'] == undefined) {
-            this.conf['for_all'] = {
-                calcmode: "clicks",
-                rate: 0
-            }
-        }
-
-        if (this.conf[id] == undefined) {
-            this.conf[id] = {
-                calcmode: "clicks",
-                rate: 0
-            }
-        }
-
-        if (this.isSingle()) {
-            return this.conf['for_all'].rate = v;
-        }
-
-        return this.conf[id].rate = v;
+    numTableCols: function() {
+        return this.tableCols().length
     },
-    getCalcModeByID: function(id) {
-        if (this.conf['for_all'] == undefined) {
-            this.conf['for_all'] = {
-                calcmode: "clicks",
-                rate: 0
-            }
-        }
-
-        if (this.conf[id] == undefined) {
-            this.conf[id] = {
-                calcmode: "clicks",
-                rate: 0
-            }
-        }
-
-        if (this.isSingle()) {
-            return this.conf['for_all'].calcmode;
-        }
-
-        return this.conf[id].calcmode;
-    },
-    getRateByID: function(id) {
-        if (this.conf['for_all'] == undefined) {
-            this.conf['for_all'] = {
-                calcmode: "clicks",
-                rate: 0
-            }
-        }
-
-        if (this.conf[id] == undefined) {
-            this.conf[id] = {
-                calcmode: "clicks",
-                rate: 0
-            }
-        }
-
-        if (this.isSingle()) {
-            return this.conf['for_all'].rate;
-        }
-
-        return this.conf[id].rate;
+    isShowTableCol: function(name) {
+        return _.indexOf(this.tableCols(), name) != -1;
     },
     getBannerIDsByCompanyID: function(cid) {
         return _.map(Api.banners[cid], "id");
+    },
+    setTableCols: function(cols) {
+        Storage.save({"tablecols": cols});
+        this.conf["tablecols"] = cols;
     },
     getAllBannerIDsByCompaings: function() {
         return _(this.ids)
@@ -416,7 +350,7 @@ var StatByMode = {
             if (tickMinutes < 10) {
                 tickMinutes = "0"+tickMinutes;
             }
-            return tick.getHours()+":"+tickMinutes;
+            return tick.getHours()
         }
 
         if (this.mode() == "minutely") {
@@ -491,10 +425,40 @@ var StatByMode = {
                 }
 
 
-                return Promise.all(calls).then(function(){
-                    v.state.isReady = true;
-                    v.state.isWaitingMsg = "Готово";
-                });
+                return Promise.all(calls)
+                    .then(function(){
+                        v.state.isWaitingMsg = "Загрузка локальных данных...";
+
+                        // загрузка из локального хранилища значения ставок и режимов расчета
+                        // все относительно кампаний
+                        var keys = _.flatten(_.map(
+                            Api.listCampaings, 
+                            function(item) {
+                                var id = item.id;
+                                return [
+                                    "c-mode-"+id,
+                                    "c-rate-"+id,
+                                ]
+                            }));
+
+                        keys.push("tablecols");
+
+                        var promise = new Promise(function(resolve, reject) {
+                            Storage.load(keys, function(storeData) {
+                                v.state.conf = _.assign(
+                                    v.state.conf,
+                                    storeData
+                                );
+                            });
+                            resolve();
+                        });
+                        
+                        return Promise.all([promise])
+                    })
+                    .then(function(){
+                        v.state.isReady = true;
+                        v.state.isWaitingMsg = "Готово";
+                    });
             })  
     },
     onremove: function(v) {
@@ -508,6 +472,8 @@ var StatByMode = {
             );
         }
 
+        var firstCol = [];
+
         var ids = v.state.ids;
         var isWaiting = ids.length == 0;
         if (isWaiting) {
@@ -518,7 +484,7 @@ var StatByMode = {
         }
 
         var cols = [
-                Api.isShowColTable("clicks")?
+                v.state.isShowTableCol("clicks")?
                     m("th", "Клики"):
                     "",
                 
@@ -538,6 +504,9 @@ var StatByMode = {
             rowCols.push(
                 m("td", v.state.formatTickTime(i))
             )
+            firstCol.push(
+                m("tr", m("td", v.state.formatTickTime(i)))
+            )
 
             // значения кампаний
 
@@ -556,8 +525,9 @@ var StatByMode = {
                 if (isNaN(ctr)) {
                     ctr = (0/1).toFixed(3);
                 }
-                var rate = v.state.getRateByID(id);
-                var calcmode = v.state.getCalcModeByID(id);
+
+                var rate = v.state.conf["c-rate-"+item.id] || 0;
+                var calcmode = v.state.conf["c-mode-"+item.id] || "off";
                 var sum = 0;
 
                 if (rate > 0 && calcmode != "off") {
@@ -574,32 +544,30 @@ var StatByMode = {
                     summ[id] = {
                         clicks: 0,
                         shows: 0,
-                        ctr: 0,
                         sum: 0
                     }
                 }
 
                 summ[id].clicks += numClicks;
                 summ[id].shows += numShows;
-                summ[id].ctr += ctr/1;
                 summ[id].sum += sum/1;
 
-                if (Api.isShowColTable("clicks")) {
+                if (v.state.isShowTableCol("clicks")) {
                     rowCols.push(m("td", mutedZeroFilter(numClicks)));
                 }
 
-                if (Api.isShowColTable("shows")) {
+                if (v.state.isShowTableCol("shows")) {
                     rowCols.push(m("td", mutedZeroFilter(numShows)));
                 }
 
-                if (Api.isShowColTable("CTR")) {
+                if (v.state.isShowTableCol("CTR")) {
                     rowCols.push(m(
                         "td", 
                         mutedZeroFilter(ctr)
                     ));
                 }
 
-                if (Api.isShowColTable("total")) {
+                if (v.state.isShowTableCol("total")) {
                     rowCols.push(m(
                          "td", 
                          {
@@ -622,12 +590,26 @@ var StatByMode = {
 
         var onChangeMode = function(_id){
             return function(e) {
-                v.state.setCalcModeByID(_id, e.target.value);
+                // dto
+                var key = "c-mode-"+_id;
+                var value = e.target.value;
+                var dto = {};
+                dto[key] = value;
+
+                Storage.save(dto); // sync to storage
+                v.state.conf[key] = value; // save state
             }
         }
         var onChangeRate = function(_id) {
             return function(e) {
-                v.state.setRateByID(_id, (e.target.value/1));
+                // dto
+                var key = "c-rate-"+_id;
+                var value = e.target.value/1;
+                var dto = {};
+                dto[key] = value;
+                
+                Storage.save(dto); // sync to storage
+                v.state.conf[key] = value; // save state
             }
         }
 
@@ -660,7 +642,8 @@ var StatByMode = {
                             m("li.uk-form.uk-text-small", m(RateChanger, {
                                 _id: modeID,
                                 key: modeID,
-                                currentMode: v.state.getCalcModeByID(id),
+                                rate: v.state.conf["c-rate-"+id] || 0,
+                                currentMode: v.state.conf["c-mode-"+id] || "off",
                                 onChangeRate: onChangeRate(id),
                                 onChangeMode: onChangeMode(id)
                             })): 
@@ -685,9 +668,10 @@ var StatByMode = {
                                     m("div.uk-form.uk-text-small", m(RateChanger, {
                                         _id: v.state.ids.join(","),
                                         key: v.state.ids.join(","),
-                                        currentMode: v.state.getCalcModeByID(),
-                                        onChangeRate: onChangeRate(),
-                                        onChangeMode: onChangeMode()
+                                        rate: v.state.conf["c-rate-"+firstItem.id] || 0,
+                                        currentMode: v.state.conf["c-mode-"+firstItem.id] || "off",
+                                        onChangeRate: onChangeRate(firstItem.id),
+                                        onChangeMode: onChangeMode(firstItem.id)
                                     }))
                                 ]:
                                 ""
@@ -695,7 +679,7 @@ var StatByMode = {
                         m(
                             "th", 
                             {
-                                colspan: Api.numColsTable()
+                                colspan: v.state.numTableCols()
                             },
                             controls
                         )
@@ -706,7 +690,7 @@ var StatByMode = {
                     m(
                         "th", 
                         {
-                            colspan: Api.numColsTable()
+                            colspan: v.state.numTableCols()
                         },
                         controls
                     )
@@ -725,33 +709,33 @@ var StatByMode = {
                 if (index == 0) {
                     return [
                         m("th", "#"),
-                        Api.isShowColTable("clicks")?
+                        v.state.isShowTableCol("clicks")?
                             m("th", "Клики"):
                             "",
-                        Api.isShowColTable("shows")?
+                        v.state.isShowTableCol("shows")?
                             m("th", "Показы"):
                             "",
-                        Api.isShowColTable("CTR")?
+                        v.state.isShowTableCol("CTR")?
                             m("th", "CTR"):
                             "",
-                        Api.isShowColTable("total")?
-                            m("th", ""):
+                        v.state.isShowTableCol("total")?
+                            m("th", "Сумма"):
                             ""
                     ]    
                 }
                 
                 return [
-                    Api.isShowColTable("clicks")?
+                    v.state.isShowTableCol("clicks")?
                         m("th", "Клики"):
                         "",
-                    Api.isShowColTable("shows")?
+                    v.state.isShowTableCol("shows")?
                         m("th", "Показы"):
                         "",
-                    Api.isShowColTable("CTR")?
+                    v.state.isShowTableCol("CTR")?
                         m("th", "CTR"):
                         "",
-                    Api.isShowColTable("total")?
-                        m("th", ""):
+                    v.state.isShowTableCol("total")?
+                        m("th", "Сумма"):
                         ""
                 ]
             })),
@@ -771,39 +755,39 @@ var StatByMode = {
                 if (info) {    
                     c = info.clicks;
                     s = info.shows;
-                    ctr = info.ctr.toFixed(2);
+                    ctr = ((info.clicks/info.shows)*100).toFixed(2);
                     sum = info.sum.toFixed(2);
                 }
 
                 if (index == 0) {
                     return [
-                        m("th", "Итог"),
-                        Api.isShowColTable("clicks")?
+                        m("th", ""),
+                        v.state.isShowTableCol("clicks")?
                             m("th", c):
                             "",
-                        Api.isShowColTable("shows")?
+                        v.state.isShowTableCol("shows")?
                             m("th", s):
                             "",
-                        Api.isShowColTable("CTR")?
+                        v.state.isShowTableCol("CTR")?
                             m("th", ctr):
                             "",
-                        Api.isShowColTable("total")?
+                        v.state.isShowTableCol("total")?
                             m("th", sum):
                             ""
                     ]    
                 }
                 
                 return [
-                    Api.isShowColTable("clicks")?
+                    v.state.isShowTableCol("clicks")?
                         m("th", c):
                         "",
-                    Api.isShowColTable("shows")?
+                    v.state.isShowTableCol("shows")?
                         m("th", s):
                         "",
-                    Api.isShowColTable("CTR")?
+                    v.state.isShowTableCol("CTR")?
                         m("th", ctr):
                         "",
-                    Api.isShowColTable("total")?
+                    v.state.isShowTableCol("total")?
                         m("th", sum):
                         ""
                 ]
@@ -811,11 +795,23 @@ var StatByMode = {
         )
         
 
+        // var table = m(
+        //     "div.uk-overflow-container",
+        //     m(
+        //         "table.uk-table uk-table-striped uk-table-condensed uk-text-nowrap", 
+        //         [
+        //             m("tbody", rows),
+        //         ]
+        //     ));
+
         var table = m(
-            "div.uk-overflow-container",
-            m("table.uk-table uk-table-striped uk-table-condensed uk-text-nowrap", [
-                m("tbody", rows),
-            ]));
+                "table.uk-table uk-table-striped uk-table-condensed", 
+                [
+                    m("tbody", rows),
+                ]
+            );
+
+        var defaultCols = ["clicks", "shows", "CTR", "total"];
         
         return m("div", [
             m(
@@ -824,10 +820,11 @@ var StatByMode = {
                     m("label", "Настройки таблицы"),
                     m(TableSettings, {
                         setOptions: function(cols) {
-                            Api.tableSettings.cols = cols;
+                            v.state.setTableCols(cols);
                         },
-                        values: Api.tableSettings.cols
-                    })
+                        values: v.state.tableCols()
+                    }),
+                    m("p.uk-text-small", "Инструкция: что бы выбрать один и более строк следует удерживая CTRL выбрать мышкой интересующие строки")
                 ]
             ),
             table,
