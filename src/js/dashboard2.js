@@ -95,44 +95,84 @@ var Storage = {
 }
 
 var TableSettings = {
+    onClicks: true,
+    onShows: true,
+    onCTR: true,
+    onTotal: true,
+    setOpts: function(values) {
+        this.onClicks = _.indexOf(values, "clicks") != -1;
+        this.onShows = _.indexOf(values, "shows") != -1;
+        this.onCTR = _.indexOf(values, "CTR") != -1;
+        this.onTotal = _.indexOf(values, "total") != -1;
+    },
+    getOpts: function() {
+        var opts = [];
+
+        if (this.onClicks) {
+            opts.push("clicks");
+        }
+
+        if (this.onShows) {
+            opts.push("shows");
+        }
+
+        if (this.onCTR) {
+            opts.push("CTR");
+        }
+        
+        if (this.onTotal) {
+            opts.push("total");
+        }
+
+        return opts
+    },
+    oninit: function(v) {
+        v.state.setOpts(v.attrs.values);
+    },
     view: function(v) {
-        return m(
-            "select[multiple='multiple'][size=4]", 
-            {onchange: function(e) {
-                v.attrs.setOptions(
-                    _(e.target).
-                        filter(function(opt){
-                            return opt.selected;
-                        }).
-                        map(function(opt) {
-                            return opt.value;
-                        }).
-                        value()
-                );
-            }},
-            [
-                m("option[value='clicks']", {
-                    selected: _.indexOf(v.attrs.values, 'clicks') != -1,
-                }, 'Клики'),
-                m(
-                    "option[value='shows']",
-                    {
-                    selected: _.indexOf(v.attrs.values, 'shows') != -1,
-                    },
-                    'Показы'),
-                m(
-                    "option[value='CTR']",
-                    {
-                    selected: _.indexOf(v.attrs.values, 'CTR') != -1,
-                    },
-                    'CTR'),
-                m(
-                    "option[value='total']", 
-                    {
-                    selected: _.indexOf(v.attrs.values, 'total') != -1,
-                    },
-                    'Сумма')
-            ])
+        var items = [
+            m("li",[
+                m("label[for=tablesettings-clicks].uk-margin-right", "Клики"),
+                m("input[type=checkbox][id=tablesettings-clicks]", {
+                    checked: v.state.onClicks,
+                    onclick: m.withAttr("checked", function(checked){
+                        v.state.onClicks = checked;
+                        v.attrs.setOptions(v.state.getOpts());
+                    })
+                })
+            ]),
+            m("li", [
+                m("label[for=tablesettings-shows].uk-margin-right", "Показы"),
+                m("input[type=checkbox][id=tablesettings-shows]", {
+                    checked: v.state.onShows,
+                    onclick: m.withAttr("checked", function(checked){
+                        v.state.onShows = checked;
+                        v.attrs.setOptions(v.state.getOpts());
+                    })
+                })
+            ]),  
+            m("li", [
+                m("label[for=tablesettings-CTR].uk-margin-right", "CTR"),
+                m("input[type=checkbox][id=tablesettings-CTR]", {
+                    checked: v.state.onCTR,
+                    onclick: m.withAttr("checked", function(checked){
+                        v.state.onCTR = checked;
+                        v.attrs.setOptions(v.state.getOpts());
+                    })
+                })
+            ]),
+            m("li", [
+                m("label[for=tablesettings-total].uk-margin-right", "Сумма"),
+                m("input[type=checkbox][id=tablesettings-total]", {
+                    checked: v.state.onTotal,
+                    onclick: m.withAttr("checked", function(checked){
+                        v.state.onTotal = checked;
+                        v.attrs.setOptions(v.state.getOpts());
+                    })
+                })
+            ]),
+        ];
+        return m("ul.uk-subnav uk-subnav-line", items);
     }
 }
 
@@ -878,14 +918,13 @@ var StatByMode = {
             m(
                 "div.uk-form",
                 [
-                    m("label", "Настройки таблицы"),
+                    m("label", "Отобрлажаемые столбцы таблицы"),
                     m(TableSettings, {
                         setOptions: function(cols) {
                             v.state.setTableCols(cols);
                         },
                         values: v.state.tableCols()
-                    }),
-                    m("p.uk-text-small", "Инструкция: что бы выбрать один и более строк следует удерживая CTRL выбрать мышкой интересующие строки")
+                    })
                 ]
             ),
             table,
