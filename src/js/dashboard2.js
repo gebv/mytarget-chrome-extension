@@ -205,7 +205,7 @@ var RateChanger = {
                     "По кликам"
                 ),
                 m(
-                    "input[type=radio]",
+                    "input[type=radio].uk-margin-right",
                     {
                         name: v.attrs._id+"-mode",
                         id: v.attrs._id+"-clicks-radiobutton",
@@ -213,9 +213,7 @@ var RateChanger = {
                         checked: v.attrs.currentMode == "clicks",
                         onchange: v.attrs.onChangeMode
                     }
-                )
-            ]),
-            m("div.uk-form-row", [
+                ),
                 m(
                     "label.uk-form-label uk-margin-right", 
                     {
@@ -241,6 +239,7 @@ var RateChanger = {
 
 var SelectCampaing = {
     oninit: function(v) {
+        document.title = "Выбрать рекламную кампанию"
         return Api.loadListCampaings(true);
     },
     view: function(v) {
@@ -718,6 +717,13 @@ var StatByMode = {
 
                 var firstItem = v.state.getItemByID(_.head(v.state.getListItemIDs()));
 
+                if (v.state.isSingle()) {
+                    document.title = firstItem.name
+                } else {
+                    document.title = "Статистика по выбранным рекламным кампаниям"
+                }
+                
+
                 if (index == 0) {
                     return [
                         m(
@@ -782,7 +788,7 @@ var StatByMode = {
 
                 if (index == 0) {
                     return [
-                        m("th", "#"),
+                        m("th", v.state.mode() == "minutely"? "Минуты": "Часы"),
                         v.state.isShowTableCol("clicks")?
                             m("th", "Клики"):
                             "",
@@ -918,7 +924,7 @@ var StatByMode = {
             m(
                 "div.uk-form",
                 [
-                    m("label", "Отобрлажаемые столбцы таблицы"),
+                    m("label", "Отображаемые столбцы таблицы"),
                     m(TableSettings, {
                         setOptions: function(cols) {
                             v.state.setTableCols(cols);
